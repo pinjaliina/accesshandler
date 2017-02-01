@@ -1,25 +1,18 @@
 # -*- coding: utf-8 -*-
-# # # # # # # # # # # # # # # # # # # # # # # # # #
-#                                                 #
-#  Automating GIS-processes – Final Assignment    #
-#                                                 #
-# # # # # # # # # # # # # # # # # # # # # # # # # #
-# NOTE: this file is UTF-8 w/ UNIX line endings!  #
-# Written for Python 3.                           #
-# # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                         #
+#  AccessHandler; process MetropAccess Helsinki Travel Time Matrix Files  #
+#                                                                         #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# NOTE: this file is UTF-8 w/ UNIX line endings!                          #
+# Written for Python 3.                                                   #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                             #
-# This is the final assignment for the UH geography course 562                #
-# "Automating GIS-processes" [sic].                                           #
-#                                                                             #
-# I'll try to keep this code as reusable as possible, which means that the    #
-# two quite different requirements for the whole program given by the         #
-# assignment are handled as independently as possible by their own functions, #
-# and are then glued together in the main program that also handles the       #
-# final input validation. The idea is that the functions should be as         #
-# reusable as possible without the main program. I'm not writing any classes, #
-# because I see no need for any new datatypes here.                           #
+# This script is originally based on the final assignment                     #
+# of the UH geography course 56279 "Automating GIS-processes" [sic].          #
+# However, it no longer meets the original requirements of that course.       #
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

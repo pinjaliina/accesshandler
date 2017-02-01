@@ -13,6 +13,7 @@
 # This script is originally based on the final assignment                     #
 # of the UH geography course 56279 "Automating GIS-processes" [sic].          #
 # However, it no longer meets the original requirements of that course.       #
+# (Also, the requirements might have changed on later course iterations.)     #
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -22,6 +23,7 @@ import sys
 import os
 import tempfile
 import re
+import argparse
 import pandas as pd
 import geopandas as gpd
 
@@ -294,159 +296,75 @@ def timeDistCalc(indata, travelmodes, outdir=False, overwrite=True, accept_modes
             print("WARNING: file \"" + ofp + "\" exists, not saving!")
     print(str(len(output)) + " shapefile(s) written succesfully!")
 
-# Print the general usage message from a separate function. This
-# eases up error control in the main program.
-#
-def usage(modes, progname = 'accesshandler.py', exitcode = 1):
-    
-    # Validate the input params.
-    try:
-        if not isinstance(modes, list):
-            raise Exception
-        for mode in modes:
-            if not isinstance(mode, str):
-                raise Exception
-    except Exception:
-        print("WARNING: No list of travel modes given, normal error reporting unavailable!")
-        pass
-    print("\nCreate shapefiles based on the MetropAccess Time Travel Matrix (MTTM).\n\n"
-          "For details, see:\n"
-          "http://blogs.helsinki.fi/accessibility/data/metropaccess-travel-time-matrix/\n\n"
-          "Usage: " + progname + " gridnum1 [gridnum2] \\\n"
-          "       ... [gridnumN] ([tmode1] [tmode2]) outdir [inshp] [indir]\n\n"
-          "Where:\n"
-          "    - gridnum1...gridnumN are YKR grid ID numbers as used in the MetropAccess\n"
-          "      project. At least one is mandatory.\n"
-          "    - tmode1 and tmode2 are travel mode field names as used in the MTTM\n"
-          "      data files:\n"
-          "          * If one is given, the other is mandatory.\n"
-          "          * Both has to be the same \"type\", i.e. their names have to end\n"
-          "            either \"time\" or \"dist\".\n"
-          "          * If none are given, no travel mode comparisons are done.\n"
-          "          * Calculation is done by subtracting the value of the second field\n"
-          "            from the first. If either is empty, the result is -1. Results are\n"
-          "            written to Time_Dist fields of the attribute tables of the created\n"
-          "            shapefiles.\n"
-          "          * Depending of the program version, available modes may vary.\n"
-          "            They are:\n"
-          "            " + ', '.join(modes) + "\n"
-          "    - outdir is the directory where the shapefiles are written. This argument\n"
-          "      is mandatory.\n"
-          "    - inshp is the full path of the YKR grid visualisation input shapefile from\n"
-          "      the MetropAccess project. If it's omitted, it is expected to be found from\n"
-          "      %TMPDIR%" + os.sep + 'MetropAccess_YKR_grid' + os.sep + 'MetropAccess_YKR_grid_EurefFIN.shp' + ".\n"
-          "    - indir is the full path of the directory containing the MTTM grid files.\n"
-          "      The file names must be in the same format as when downloaded from the\n"
-          "      project page (eg. time_to_0000000.txt).\n"
-          "      If omitted, %TMPDIR%" + os.sep + "MTTM is used, but the path must exist!"
-          "\n")
-    sys.exit(exitcode)
-            
-# Main program. The assignment called for only three params, but we very
-# obviously also want to ask the user for the location of the input
-# shapefile and the input MTTM files. However, because only three params
-# were requested, the input paths DO have default values; they're expected
-# to be the following:
-#
-# Input shapefile: tempfile.gettempdir()/MetropAccess_YKR_grid/MetropAccess_YKR_grid_EurefFIN.shp
-# Input MTTM files: tempfile.gettempdir()/MTTM
-#
-# Note that these do not necessarily make much sense, as eg. in my own setup
-# on OS X gettempdir() returns "/var/folders/kj/8zwtv0g163725wk62p76g01c0000gp/T",
-# which is definitely not a directory that a user would accidentially use.
-#
-# I made a futile attempt to use the argparse module, but it didn't really work,
-# or I didn't have enough time to test it. Basically, the problem is that we've
-# to loop through sys.argv and check that all the params in the beginning are
-# integers... and if some of them are not, then we'll have to assume that they
-# are travel modes or filenames.
+# Main program.
 # 
-progname = sys.argv[0]
-# The assignment asks for Car_time & Car_dist travel modes to be excluded; I see
-# no sensible reason for this, so the default for timeDistCalc() includes them,
-# but that default is overwritten here, so as to meet the requirements of the
-# assignment. I will NOT enable overwriting it from the command line, though...
-allow_modes = ['Walk_time', 'Walk_dist', 'PT_total_time', 'PT_time', 'PT_dist']
-# If help is requested, give it!
-if sys.argv[1] == 'help' or sys.argv[1] == '-help' or sys.argv[1] == '--help' or sys.argv[1] == '-h':
-    usage(allow_modes, progname)
-# Iterate over sys.argv and try to create sensible lists from the arguments.
-gridnums = []
-tmodes = []
-paths = []
-for key, value in enumerate(sys.argv):
-    if key > 0:
-        try:
-            gridnum = int(value)
-            gridnums.append(gridnum)
-        except ValueError:
-            pass
-        try:
-            if len(tmodes) == 0 and value in allow_modes:
-                tmodes.append(value)
-            if len(tmodes) == 1 and value in allow_modes and (
-                (tmodes[0].find('time') != -1 and value.find('time') != -1) or
-                (tmodes[0].find('dist') != -1 and value.find('dist') != -1)
-                ) and value != tmodes[0]:
-                tmodes.append(value)
-        except Exception:
-            pass
-        try:
-            if len(paths) < 3 and isinstance(value, str):
-                # If the user forgets the output path but gives both input
-                # filenames, we may be tricked to think that sys.argv[-1]
-                # is our real output path. Check sys.argv[-2] and sys.argv[-3]
-                # to be sure!
-                if len(paths) == 0 and os.path.isdir(value) and (not os.path.isfile(sys.argv[-2]) or os.path.isdir(sys.argv[-3])):
-                    paths.append(value)
-                if len(paths) == 1 and os.path.isfile(value):
-                    paths.append(value)
-                if len(paths) > 0 and len(paths) < 3 and value != paths[0] and os.path.isdir(value):
-                    paths.append(value)
-        except Exception:
-            pass
-# Test the arguments. Print a usage message unless we pass.
-#print(str(len(gridnums)) + str(len(tmodes)) + str(len(paths))) # DEBUG!!!
-if len(gridnums) > 0 and (len(tmodes) == 0 or len(tmodes) == 2) and len(paths) > 0:
-    outdir = paths[0]
-    inshp = None
-    indir = None
-    if len(paths) == 2 and os.path.isdir(paths[1]):
-        indir = paths[1]
-    elif len(paths) == 2 and os.path.isfile(paths[1]):
-        inshp = paths[1]
-    elif len(paths) == 3:
-        inshp = paths[1]
-        indir = paths[2]
-    if not (inshp and indir):
-        tmpdir = tempfile.gettempdir()
-        if not inshp:
-            inshp = os.path.join(tmpdir, 'MetropAccess_YKR_grid', 'MetropAccess_YKR_grid_EurefFIN.shp')
-        if not indir:
-            indir = os.path.join(tmpdir, 'MTTM')
-    try:
-        if not os.path.isfile(inshp):
-            raise FileNotFoundError
-        if not os.path.isdir(indir):
-            raise FileNotFoundError
-    except FileNotFoundError:
-        print("ERROR: an input file or directory is not found!")
-        usage(allow_modes, progname)
-    if len(tmodes) == 0:
-        createShapeFiles(inshp, indir, gridnums, outdir, ignoremissing=True, overwriteexisting=True)
-    else:
-        gdfobjects = createShapeFiles(inshp, indir, gridnums, outdir=False, ignoremissing=True)
-        timeDistCalc(gdfobjects, tmodes, outdir, accept_modes=allow_modes)
-else:
-    try:
-        if len(paths) == 0:
-            raise FileNotFoundError
-    except FileNotFoundError:
-        print("ERROR: output directory is not found!")
-        usage(allow_modes, progname)
-    usage(allow_modes, progname)
+# Positional arguments:
+#  – input directory
+#  – output directory
+# Mandatory “optional” arguments:
+#  – arbitrary number of YKR grid numbers.
+# Truly optional arguments:
+#  – input shapefile. Defaults to ./MetropAccess_YKR_grid/MetropAccess_YKR_grid_EurefFIN.shp
+#  – travel modes
 
-
+# Define a custom argparse action for checking for the valid travel types.
+class valid_modes(argparse.Action):
+    def __call__(self, parser, namespace, modes, option_string=None):
+        # Define an exception handler to enable suppressing traceback:
+        def exceptionHandler(exception_type, exception, traceback):
+            print("{}: {}".format(exception_type.__name__, exception))
         
+        mode0_suffix = re.search('_[a-z]{4}$', modes[0]).group(0)
+        mode1_suffix = re.search('_[a-z]{4}$', modes[1]).group(0)
+        if ((mode0_suffix == '_time' or mode0_suffix == '_dist') and mode0_suffix == mode1_suffix):
+            setattr(namespace, self.dest, modes)
+        else:
+            parser.print_usage()
+            sys.excepthook = exceptionHandler # Suppress traceback.
+            raise argparse.ArgumentTypeError('Travel modes are of different types or of an invalid type!')
 
+# Define a custom argparse action for checking if the I/O directories exist.
+class valid_dir(argparse.Action):
+    def __call__(self, parser, namespace, dirname, option_string=None):
+        # Define an exception handler to enable suppressing traceback:
+        def exceptionHandler(exception_type, exception, traceback):
+            print("{}: {}".format(exception_type.__name__, exception))
+        
+        if (os.path.isdir(dirname)):
+            setattr(namespace, self.dest, dirname)
+        else:
+            parser.print_usage()
+            sys.excepthook = exceptionHandler # Suppress traceback.
+            raise argparse.ArgumentTypeError('Path ' + dirname + ' does not exist or is not a directory!')
 
+# Create an argument parser and add arguments.
+parser = argparse.ArgumentParser(description='Create shapefiles based on the MetropAccess Time Travel Matrix (MTTM).')
+parser.add_argument('-g', '--gridnum', nargs='+', required=True, type=int, help='YKR grid ID numbers as used in the MetropAccess\nproject. At least one is mandatory.')
+# NOTE: The following needs to change when this script will be converted to the 2015 version of the MTTM!
+parser.add_argument('-m', '--mode', nargs=2, action=valid_modes, default=argparse.SUPPRESS, help='Travel modes, whose difference is to be calculated. They must be of the same type, thus, end with either "_time" or "_dist".')
+parser.add_argument('-s', '--inshp', nargs=1, type=argparse.FileType('r'), default=os.getcwd() + os.sep + 'MetropAccess_YKR_grid' + os.sep + 'MetropAccess_YKR_grid_EurefFIN.shp', help='Path of the YKR grid visualisation input shapefile from the MetropAccess project.\nDefault is current working directory + MetropAccess_YKR_grid' + os.sep + 'MetropAccess_YKR_grid_EurefFIN.shp')
+parser.add_argument('indir', action=valid_dir, help='Full path of the MTTM files input directory')
+parser.add_argument('outdir', action=valid_dir, help='Full path of the directory where the created shapefiles are written to')
+args = parser.parse_args()
+
+# DEBUG:
+#print(args.gridnum)
+#if hasattr(args, 'mode'):
+#   print(args.mode)
+#print(args.inshp[0].name)
+#print(args.indir)
+#print(args.outdir)
+
+# Assign some vars.
+gridnums = args.gridnum
+inshp = args.inshp[0].name
+indir = args.indir
+outdir = args.outdir
+
+# Do the real work.
+if not hasattr(args, 'mode'):
+    # FIXME: convert the last two arguments to this function to optional command line arguments.
+    createShapeFiles(inshp, indir, gridnums, outdir, ignoremissing=True, overwriteexisting=True)
+else:
+    gdfobjects = createShapeFiles(inshp, indir, gridnums, outdir=False, ignoremissing=True)
+    timeDistCalc(gdfobjects, args.mode, outdir)

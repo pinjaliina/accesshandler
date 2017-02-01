@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                                                                         #
-#  AccessHandler; process MetropAccess Helsinki Travel Time Matrix Files  #
-#                                                                         #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# NOTE: this file is UTF-8 w/ UNIX line endings!                          #
-# Written for Python 3.                                                   #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                               #
+#  AccessHandler; process MetropAccess Helsinki Travel Time Matrix (MTTM) Files #
+#                                                                               #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# NOTE: this file is UTF-8 w/ UNIX line endings!                                #
+# Written for Python 3.                                                         #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                             #

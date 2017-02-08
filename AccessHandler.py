@@ -342,7 +342,7 @@ parser = argparse.ArgumentParser(description='Create shapefiles based on the Met
 parser.add_argument('-g', '--gridnum', nargs='+', required=True, type=int, help='YKR grid ID numbers as used in the MetropAccess\nproject. At least one is mandatory.')
 # NOTE: The following needs to change when this script will be converted to the 2015 version of the MTTM!
 parser.add_argument('-m', '--mode', nargs=2, action=valid_modes, default=argparse.SUPPRESS, help='Travel modes, whose difference is to be calculated. They must be of the same type, thus, end with either "_time" or "_dist".')
-parser.add_argument('-s', '--inshp', nargs=1, type=argparse.FileType('r'), default=os.getcwd() + os.sep + 'MetropAccess_YKR_grid' + os.sep + 'MetropAccess_YKR_grid_EurefFIN.shp', help='Path of the YKR grid visualisation input shapefile from the MetropAccess project.\nDefault is current working directory + MetropAccess_YKR_grid' + os.sep + 'MetropAccess_YKR_grid_EurefFIN.shp')
+parser.add_argument('-s', '--inshp', nargs=1, type=argparse.FileType('r'), default=os.getcwd() + os.sep + 'YKRGrid' + os.sep + 'MetropAccess_YKR_grid_EurefFIN.shp', help='Path of the YKR grid visualisation input shapefile from the MetropAccess project.\nDefault is current working directory + YKRGrid' + os.sep + 'MetropAccess_YKR_grid_EurefFIN.shp')
 parser.add_argument('indir', action=valid_dir, help='Full path of the MTTM files input directory')
 parser.add_argument('outdir', action=valid_dir, help='Full path of the directory where the created shapefiles are written to')
 args = parser.parse_args()
@@ -351,13 +351,22 @@ args = parser.parse_args()
 #print(args.gridnum)
 #if hasattr(args, 'mode'):
 #   print(args.mode)
-#print(args.inshp[0].name)
+# args.inshp is a one-item list, if given, but an _io.TextIOWrapper object,
+# if the default.
+#if(isinstance(args.inshp, list)):
+    #print(args.inshp[0].name)
+#else:
+    #print(args.inshp.name)
 #print(args.indir)
 #print(args.outdir)
 
 # Assign some vars.
 gridnums = args.gridnum
-inshp = args.inshp[0].name
+inshp = ''
+if(isinstance(args.inshp, list)):
+    inshp = args.inshp[0].name
+else:
+    inshp = args.inshp.name
 indir = args.indir
 outdir = args.outdir
 

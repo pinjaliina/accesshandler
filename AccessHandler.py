@@ -155,10 +155,11 @@ def createShapeFiles(inshp, indir, idlist, outdir=False, ignoremissing=True, ove
     return(output)
 
 
-# Function implementing the requirement 2 of the assignment, ie. calculating
-# travel time or distance between two travel types. Function accepts either
-# existing shapefiles or GeoDataFrame objects. For the general logic behind
-# it, see the description of createShapeFiles().
+# Function originally implementing the requirement 2 of the assignment,
+# ie. calculating travel time or distance between two travel types, although
+# no longer fully meeting its requirements. Function accepts either existing
+# shapefiles or GeoDataFrame objects. For the general logic behind it, see
+# the description of createShapeFiles().
 #
 # About the params:
 # 
@@ -170,7 +171,6 @@ def createShapeFiles(inshp, indir, idlist, outdir=False, ignoremissing=True, ove
 #   created, if they don't exist. If they do, file is omitted.
 # * If indata is a list of objects and overwrite is false, any existing files are
 #   skipped.
-# * accept_modes by default include all the modes available in the MTTM files.
 # 
 # We're not returning anything. In theory we could still just return the
 # GeoDataFrame objects for further post-processing, but that would be rapidly

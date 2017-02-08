@@ -177,10 +177,10 @@ def createShapeFiles(inshp, indir, idlist, outdir=False, ignoremissing=True, ove
 # getting beyond the scope of this assignment. That might be the most sensible
 # point for further development here, though.
 # 
-def timeDistCalc(indata, travelmodes, outdir=False, overwrite=True, accept_modes = ['Walk_time', 'Walk_dist', 'PT_total_time', 'PT_time', 'PT_dist', 'Car_time', 'Car_dist']):
+def timeDistCalc(indata, travelmodes, outdir=False, overwrite=True):
 
-    # Default modes. Same as the accept_modes, if nothing else was given.
-    default_accept_modes = ['Walk_time', 'Walk_dist', 'PT_total_time', 'PT_time', 'PT_dist', 'Car_time', 'Car_dist']
+    # Accept the following travel modes.
+    accept_modes = ('walk_t','walk_d','pt_r_tt','pt_r_t','pt_r_d','pt_m_tt','pt_m_t','pt_m_d','car_r_t','car_r_d','car_m_t','car_m_d')
     # Validate the input params.
     try:
         if not isinstance(indata, list):
@@ -193,21 +193,6 @@ def timeDistCalc(indata, travelmodes, outdir=False, overwrite=True, accept_modes
               "shapefile paths or GeoDataFrame objects!")
         sys.exit(1)
     try:
-        if not isinstance(accept_modes, list):
-            raise Exception
-        if not len(accept_modes) > 1:
-            raise Exception
-        for mode in accept_modes:
-            if not isinstance(mode, str):
-                raise Exception
-            if not mode in default_accept_modes:
-                raise Exception
-    except Exception:
-        print("ERROR: timeDistCalc() requires the fifth parameter to be a list including some "
-              "or all of the following options:\n" + ', '.join(default_accept_modes)
-              + "\nAt least two are required.")
-        sys.exit(1)
-    try:
         if not isinstance(travelmodes, list):
             raise Exception
         if not len(travelmodes) == 2:
@@ -217,11 +202,10 @@ def timeDistCalc(indata, travelmodes, outdir=False, overwrite=True, accept_modes
                 raise Exception
             if not mode in accept_modes:
                 raise Exception
-        if not (
-            (travelmodes[0].find('time') != -1 and travelmodes[1].find('time') != -1)
-            or (travelmodes[0].find('dist') != -1 and travelmodes[1].find('dist') != -1)
-            or (travelmodes[0] != travelmodes[1])
-            ):
+        # Check that the modes are of the same type.
+        mode0_suffix = re.search('[dt]{1}$', travelmodes[0]).group(0)
+        mode1_suffix = re.search('[dt]{1}$', travelmodes[1]).group(0)
+        if not ((mode0_suffix == 't' or mode0_suffix == 'd') and mode0_suffix == mode1_suffix):
             raise Exception
     except Exception:
         print("ERROR: timeDistCalc() requires the second parameter to be a list of the "
@@ -245,7 +229,7 @@ def timeDistCalc(indata, travelmodes, outdir=False, overwrite=True, accept_modes
 
     # Test, whether we're calculating times or distances.
     time = False
-    if travelmodes[0].find('time') != -1:
+    if re.search('[dt]{1}$', travelmodes[0]).group(0) == 't':
         time = True
     # Save indata length.
     indata_len = len(indata)
@@ -260,9 +244,9 @@ def timeDistCalc(indata, travelmodes, outdir=False, overwrite=True, accept_modes
         else:
             shp = gpd.read_file(value)
         # Create a new column to the shapefile attr table.
-        shp['Time_Dist'] = None
+        shp['c_result'] = None
         # Set some filename-related vars.
-        to_id = shp.ix[0, 'to_id'] # Iif we've no input files, we don't know this.
+        to_id = shp.ix[0, 'to_id'] # If we've no input files, we don't know this.
         fn_prefix = 'Accessibility_'
         # split() would be difficult here if we've multiple underscores, like in
         # PT_total_time. For once, regex greediness is useful. The following
@@ -270,7 +254,7 @@ def timeDistCalc(indata, travelmodes, outdir=False, overwrite=True, accept_modes
         # the _last_ underscore:
         fn_suffix = '_' + re.search('^[\w]+_', travelmodes[0]).group().strip('_') + '_vs_' + re.search('^[\w]+_', travelmodes[1]).group().strip('_') + '.shp'
         # Print some process information. It's actually delayed, because we don't know the to_id before the first
-        # iteration, but this is hardly noticeable
+        # iteration, but this is hardly noticeable.
         if time:
             print("Calculating travel times to grid ID " + str(to_id) + "... Progress: " + str(key+1) + "/" + str(indata_len))
         else:
@@ -284,7 +268,7 @@ def timeDistCalc(indata, travelmodes, outdir=False, overwrite=True, accept_modes
             if row[1][travelmodes[0]] != -1 and row[1][travelmodes[1]] != -1:
                 result = row[1][travelmodes[0]]-row[1][travelmodes[1]]
             # Update the attr table cell.
-            shp.set_value(i, 'Time_Dist', result)
+            shp.set_value(i, 'c_result', result)
         # Write out the result according to the prefs given in our input vars.
         if overwrite and isinstance(value, str) and os.path.isfile(value):
             shp.to_file(value)
@@ -320,9 +304,19 @@ class valid_modes(argparse.Action):
         def exceptionHandler(exception_type, exception, traceback):
             print("{}: {}".format(exception_type.__name__, exception))
         
-        mode0_suffix = re.search('_[a-z]{4}$', modes[0]).group(0)
-        mode1_suffix = re.search('_[a-z]{4}$', modes[1]).group(0)
-        if ((mode0_suffix == '_time' or mode0_suffix == '_dist') and mode0_suffix == mode1_suffix):
+        modelist = ('walk_t','walk_d','pt_r_tt','pt_r_t','pt_r_d','pt_m_tt','pt_m_t','pt_m_d','car_r_t','car_r_d','car_m_t','car_m_d')
+        
+        # Check for valid mode types.
+        for m in modes:
+            if not m in modelist:
+                parser.print_usage()
+                sys.excepthook = exceptionHandler # Suppress traceback.
+                raise argparse.ArgumentTypeError('Travel modes are of different types or of an invalid type!')
+        
+        # Check that the modes are of the same type.
+        mode0_suffix = re.search('[dt]{1}$', modes[0]).group(0)
+        mode1_suffix = re.search('[dt]{1}$', modes[1]).group(0)
+        if ((mode0_suffix == 't' or mode0_suffix == 'd') and mode0_suffix == mode1_suffix):
             setattr(namespace, self.dest, modes)
         else:
             parser.print_usage()
@@ -347,7 +341,7 @@ class valid_dir(argparse.Action):
 parser = argparse.ArgumentParser(description='Create shapefiles based on the MetropAccess Time Travel Matrix (MTTM).')
 parser.add_argument('-g', '--gridnum', nargs='+', required=True, type=int, help='YKR grid ID numbers as used in the MetropAccess\nproject. At least one is mandatory.')
 # NOTE: The following needs to change when this script will be converted to the 2015 version of the MTTM!
-parser.add_argument('-m', '--mode', nargs=2, action=valid_modes, default=argparse.SUPPRESS, help='Travel modes, whose difference is to be calculated. They must be of the same type, thus, end with either "_time" or "_dist".')
+parser.add_argument('-m', '--mode', nargs=2, action=valid_modes, default=argparse.SUPPRESS, help='Travel modes, whose difference is to be calculated. They must be of the same type, thus, end with either "t" or "_d".')
 parser.add_argument('-s', '--inshp', nargs=1, type=argparse.FileType('r'), default=os.getcwd() + os.sep + 'YKRGrid' + os.sep + 'MetropAccess_YKR_grid_EurefFIN.shp', help='Path of the YKR grid visualisation input shapefile from the MetropAccess project.\nDefault is current working directory + YKRGrid' + os.sep + 'MetropAccess_YKR_grid_EurefFIN.shp')
 parser.add_argument('indir', action=valid_dir, help='Full path of the MTTM files input directory')
 parser.add_argument('outdir', action=valid_dir, help='Full path of the directory where the created shapefiles are written to')

@@ -104,13 +104,13 @@ def createShapeFiles(inshp, indir, idlist, outdir=False, ignoremissing=True, ove
     # Create the shapefiles or GeoDataFrame objects.
     ykr = gpd.read_file(inshp)
     output = []
-    fn_prefix = 'time_to_'
+    fn_prefix = 'travel_times_to_'
     fn_suffix = '.txt'
     idlist_len = len(idlist)
     for key, gid in enumerate(idlist):
-        print("Processing file \"" + fn_prefix + str(gid) + fn_suffix + "\"... Progress: " + str(key+1) + "/" + str(idlist_len))
+        print("Processing file \"" + fn_prefix + ' ' + str(gid) + fn_suffix + "\"... Progress: " + str(key+1) + "/" + str(idlist_len))
         # Try to find the file from the filesystem under the input directory:
-        fn = fn_prefix + str(gid) + fn_suffix
+        fn = fn_prefix + ' ' + str(gid) + fn_suffix
         fp = ''
         for root, dirs, files in os.walk(indir):
             for f in files:

@@ -116,7 +116,6 @@ def createShapeFiles(inshp, indir, idlist, outdir=False, ignoremissing=True, ove
             for f in files:
                 if f == fn:
                     fp = os.path.join(root, f)
-        #fp = os.path.join(indir, fn_prefix + str(gid) + fn_suffix)
         if len(fp) == 0 or not os.path.isfile(fp):
             if ignoremissing:
                 print("WARNING: file \"" + fn + "\" not found from the input directory!")

@@ -104,17 +104,24 @@ def createShapeFiles(inshp, indir, idlist, outdir=False, ignoremissing=True, ove
     # Create the shapefiles or GeoDataFrame objects.
     ykr = gpd.read_file(inshp)
     output = []
-    fn_prefix = 'time_to_' # Assignment suggest that this is "travel_times_to_", but that doesn't seem to be the case.
+    fn_prefix = 'time_to_'
     fn_suffix = '.txt'
     idlist_len = len(idlist)
     for key, gid in enumerate(idlist):
-        fp = os.path.join(indir, fn_prefix + str(gid) + fn_suffix)
         print("Processing file \"" + fn_prefix + str(gid) + fn_suffix + "\"... Progress: " + str(key+1) + "/" + str(idlist_len))
-        if not os.path.isfile(fp):
+        # Try to find the file from the filesystem under the input directory:
+        fn = fn_prefix + str(gid) + fn_suffix
+        fp = ''
+        for root, dirs, files in os.walk(indir):
+            for f in files:
+                if f == fn:
+                    fp = os.path.join(root, f)
+        #fp = os.path.join(indir, fn_prefix + str(gid) + fn_suffix)
+        if len(fp) == 0 or not os.path.isfile(fp):
             if ignoremissing:
-                print("WARNING: file \"" + fp + "\" does not exist!")
+                print("WARNING: file \"" + fn + "\" not found from the input directory!")
             else:
-                print("ERROR: file \"" + fp + "\" does not exist!")
+                print("ERROR: file \"" + fp + "\" not found from the input directory!")
                 sys.exit(1)
         else:
             ttmdata = pd.read_csv(fp, sep=';')

@@ -248,11 +248,7 @@ def timeDistCalc(indata, travelmodes, outdir=False, overwrite=True):
         # Set some filename-related vars.
         to_id = shp.ix[0, 'to_id'] # If we've no input files, we don't know this.
         fn_prefix = 'Accessibility_'
-        # split() would be difficult here if we've multiple underscores, like in
-        # PT_total_time. For once, regex greediness is useful. The following
-        # should do exactly what we want, i.e. break the string from
-        # the _last_ underscore:
-        fn_suffix = '_' + re.search('^[\w]+_', travelmodes[0]).group().strip('_') + '_vs_' + re.search('^[\w]+_', travelmodes[1]).group().strip('_') + '.shp'
+        fn_suffix = '_' + travelmodes[0] + '_vs_' + travelmodes[1] + '.shp'
         # Print some process information. It's actually delayed, because we don't know the to_id before the first
         # iteration, but this is hardly noticeable.
         if time:
